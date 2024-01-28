@@ -1,31 +1,40 @@
-import { Application, Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
-import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
-import data from "./data.json" assert { type: "json" };
+import {
+  Context,
+  verify,
+  ApolloServer,
+  startStandaloneServer,
+} from './config/deps.ts';
+import client from './db/index.ts';
+import { typeDefs } from './schema/index.ts';
+import { resolvers } from './resolvers/index.ts';
 
-const router = new Router();
-router
-  .get("/", (context) => {
-    context.response.body = "Welcome to dinosaur API!";
-  })
-  .get("/api", (context) => {
-    context.response.body = data;
-  })
-  .get("/api/:dinosaur", (context) => {
-    if (context?.params?.dinosaur) {
-      const found = data.find((item) =>
-        item.name.toLowerCase() === context.params.dinosaur.toLowerCase()
-      );
-      if (found) {
-        context.response.body = found;
-      } else {
-        context.response.body = "No dinosaurs found.";
-      }
-    }
-  });
+// JWT titkosító kulcs (env fájlból vagy más biztonságos helyről)
+const SECRET_KEY = 'jkhjkbjhd¶wq«';
 
-const app = new Application();
-app.use(oakCors()); // Enable CORS for All Routes
-app.use(router.routes());
-app.use(router.allowedMethods());
+// Apollo Server beállítása
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  // context: async (ctx: Context) => {
+  //   const auth = ctx.request.headers.get('authorization');
+  //   let currentUser = null;
 
-await app.listen({ port: 8000 });
+  //   if (auth && auth.startsWith('Bearer ')) {
+  //     const token = auth.substring(7);
+  //     try {
+  //       const decodedToken = await verify(token, SECRET_KEY);
+  //       // Itt állítsd be a currentUser-t a felhasználó adataival
+  //     } catch (error) {
+  //       console.error('Hiba az autentikáció során', error);
+  //     }
+  //   }
+
+  //   return { currentUser, db: client };
+  // },
+});
+
+const { url } = await startStandaloneServer(server, {
+  listen: { port: 8000 },
+});
+
+console.log(`Server running on: ${url}`);
